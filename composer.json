@@ -1,0 +1,29 @@
+{
+    "require": {
+        "php": ">=8.2",
+        "ext-curl": "*",
+        "ext-json": "*",
+        "ext-simplexml": "*",
+        "guzzlehttp/guzzle": "^7.9"
+    },
+    "autoload": {
+        "psr-4": {
+            "AzurePhp\\Storage\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "AzurePhp\\Tests\\Storage\\": "tests/"
+        }
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^12.0",
+        "phpstan/phpstan": "^2.1",
+        "symfony/var-dumper": "^7.2",
+        "friendsofphp/php-cs-fixer": "^3.75",
+        "rector/rector": "^2.0"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}
