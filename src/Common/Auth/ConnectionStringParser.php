@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AzurePhp\Storage\Common\Auth;
 
+use AzurePhp\Storage\Common\Exception\InvalidConnectionStringException;
 use GuzzleHttp\Psr7\Uri;
 use Psr\Http\Message\UriInterface;
 
@@ -14,19 +15,6 @@ use Psr\Http\Message\UriInterface;
  */
 final class ConnectionStringParser
 {
-    public const LOCAL_BLOB_ENDPOINT = 'http://127.0.0.1:10000/devstoreaccount1';
-    public const LOCAL_QUEUE_ENDPOINT = 'http://127.0.0.1:10001/devstoreaccount1';
-    public const LOCAL_TABLE_ENDPOINT = 'http://127.0.0.1:10002/devstoreaccount1';
-    public const LOCAL_ACCOUNT_NAME = 'devstoreaccount1';
-    public const LOCAL_ACCOUNT_KEY = 'Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==';
-
-    /** @var string[] */
-    private array $localEndpoints = [
-        'blob' => self::LOCAL_BLOB_ENDPOINT,
-        'queue' => self::LOCAL_QUEUE_ENDPOINT,
-        'table' => self::LOCAL_TABLE_ENDPOINT,
-    ];
-
     /** @var UriInterface[] */
     private array $endpoints = [];
 
@@ -40,7 +28,7 @@ final class ConnectionStringParser
         $parts = [];
 
         foreach (explode(';', $connectionString) as $part) {
-            if (!str_contains($part, '=')) {
+            if (false === str_contains($part, '=')) {
                 continue;
             }
 
@@ -82,7 +70,7 @@ final class ConnectionStringParser
         }
 
         if (false === isset($this->endpoints[$name])) {
-            $this->endpoints[$name] = new Uri($this->localEndpoints[$name]);
+            throw new InvalidConnectionStringException(sprintf('Missing endpoint for "%s" service.', $name));
         }
 
         if (isset($this->parts['DefaultEndpointsProtocol'])) {
@@ -101,13 +89,13 @@ final class ConnectionStringParser
         return isset($this->parts['SharedAccessSignature']);
     }
 
-    public function getAccountName(): string
+    public function getAccountName(): ?string
     {
-        return  $this->parts['AccountName'] ?? self::LOCAL_ACCOUNT_NAME;
+        return  $this->parts['AccountName'] ?? null;
     }
 
-    public function getAccountKey(): string
+    public function getAccountKey(): ?string
     {
-        return  $this->parts['AccountKey'] ?? self::LOCAL_ACCOUNT_KEY;
+        return  $this->parts['AccountKey'] ?? null;
     }
 }

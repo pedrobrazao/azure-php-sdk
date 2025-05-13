@@ -16,8 +16,8 @@ final class SharedAccountKeyTest extends TestCase
 {
     public function testProperties(): void
     {
-        $accountName = 'myaccount';
-        $accountKey = 'account-key';
+        $accountName = $_ENV['AZURE_STORAGE_ACCOUNT_NAME'];
+        $accountKey = $_ENV['AZURE_STORAGE_ACCOUNT_KEY'];
         $instance = new SharedAccountKey($accountName, $accountKey);
 
         $this->assertSame($accountName, $instance->accountName);

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace AzurePhp\Tests\Storage\Unit\Common\Client;
 
-use AzurePhp\Storage\Common\Auth\ConnectionStringParser;
 use AzurePhp\Storage\Common\Auth\SharedAccountKey;
 use AzurePhp\Storage\Common\Client\HeaderAuthorizationMiddleware;
 use GuzzleHttp\Psr7\Request;
@@ -20,7 +19,7 @@ final class HeaderAuthorizationMiddlewareTest extends TestCase
 {
     public function testInvoke(): void
     {
-        $key = new SharedAccountKey(ConnectionStringParser::LOCAL_ACCOUNT_NAME, ConnectionStringParser::LOCAL_ACCOUNT_KEY);
+        $key = new SharedAccountKey($_ENV['AZURE_STORAGE_ACCOUNT_NAME'], $_ENV['AZURE_STORAGE_ACCOUNT_KEY']);
         $middleware = new HeaderAuthorizationMiddleware($key);
 
         // fake handler; only for tests

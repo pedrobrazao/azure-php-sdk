@@ -26,4 +26,13 @@
             <directory>src</directory>
         </include>
     </source>
+
+<php>
+  <env name="AZURE_STORAGE_ACCOUNT_NAME" value="devstoreaccount1" force="true"/>
+  <env name="AZURE_STORAGE_ACCOUNT_KEY" value="Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==" force="true"/>
+  <env name="AZURE_STORAGE_BLOB_ENDPOINT" value="http://127.0.0.1:10000/devstoreaccount1" force="true"/>
+  <env name="AZURE_STORAGE_QUEUE_ENDPOINT" value="http://127.0.0.1:10001/devstoreaccount1" force="true"/>
+  <env name="AZURE_STORAGE_default_protocol" value="http" force="true"/>
+  <env name="AZURE_STORAGE_TABLE_ENDPOINT" value="http://127.0.0.1:10002/devstoreaccount1" force="true"/>
+</php>
 </phpunit>
