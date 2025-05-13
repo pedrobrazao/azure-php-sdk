@@ -4,7 +4,9 @@
         "ext-curl": "*",
         "ext-json": "*",
         "ext-simplexml": "*",
-        "guzzlehttp/guzzle": "^7.9"
+        "caseyamcl/guzzle_retry_middleware": "^2.12",
+        "guzzlehttp/guzzle": "^7.9",
+        "guzzlehttp/psr7": "^2.7"
     },
     "autoload": {
         "psr-4": {
