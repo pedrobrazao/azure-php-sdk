@@ -6,9 +6,9 @@ namespace AzurePhp\Storage\Common\Client;
 
 use AzurePhp\Storage\Common\Auth\SharedAccountKey;
 use GuzzleHttp\Client;
-use GuzzleHttp\ClientInterface;
 use GuzzleHttp\HandlerStack;
 use GuzzleRetry\GuzzleRetryMiddleware;
+use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\UriInterface;
 
 final readonly class ClientFactory

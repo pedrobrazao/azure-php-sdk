@@ -17,7 +17,9 @@ final readonly class HeaderAuthorizationMiddleware
     {
         return function (RequestInterface $request, array $options) use ($handler) {
             $signature = $this->key->getSignature($request);
-            $request = $request->withHeader(self::HEADER_NAME, $signature);
+            $authorization = sprintf('SharedKey %s:%s', $this->key->accountName, $signature);
+
+            $request = $request->withHeader(self::HEADER_NAME, $authorization);
 
             return $handler($request, $options);
         };

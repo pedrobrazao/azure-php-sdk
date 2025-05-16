@@ -6,9 +6,9 @@ namespace AzurePhp\Tests\Storage\Unit\Common\Client;
 
 use AzurePhp\Storage\Common\Auth\SharedAccountKey;
 use AzurePhp\Storage\Common\Client\ClientFactory;
-use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Psr7\Uri;
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Client\ClientInterface;
 
 /**
  * @internal
