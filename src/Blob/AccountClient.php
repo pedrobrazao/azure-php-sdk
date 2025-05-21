@@ -12,7 +12,7 @@ use AzurePhp\Storage\Common\Client\ClientFactory;
 use AzurePhp\Storage\Common\Exception\InvalidConnectionStringException;
 use GuzzleHttp\Psr7\Query;
 use GuzzleHttp\Psr7\Request;
-use Psr\Http\Client\ClientInterface;
+use GuzzleHttp\ClientInterface;
 use Psr\Http\Message\UriInterface;
 
 final readonly class AccountClient
@@ -40,6 +40,14 @@ final readonly class AccountClient
         throw new InvalidConnectionStringException('Missing "AccountName" and/or "AccountKey" parameters.');
     }
 
+    public function getContainerClient(string $containerName): ContainerClient
+    {
+        $path = sprintf('%s/%s', rtrim($this->uri->getPath(), '/'), trim($containerName, '/'));
+        $uri = $this->uri->withPath($path);
+
+        return new ContainerClient($this->client, $uri);
+    }
+
     /**
      * @see https://learn.microsoft.com/en-us/rest/api/storageservices/list-containers2?tabs=microsoft-entra-id
      *
@@ -56,7 +64,7 @@ final readonly class AccountClient
             }
 
             $uri = $this->uri->withQuery(Query::build($query));
-            $response = $this->client->sendRequest(new Request('GET', $uri));
+            $response = $this->client->send(new Request('GET', $uri));
             $xml = new \SimpleXMLElement($response->getBody()->getContents());
             $containerList = ContainerList::fromXml($xml);
 

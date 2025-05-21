@@ -4,72 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "cdcdc164f483d4fa2b9482cc4abffd5a",
+    "content-hash": "7c52471a9f6b6a4b9b1144b7ba5e2bb3",
     "packages": [
-        {
-            "name": "azure-oss/storage",
-            "version": "1.3.1",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/Azure-OSS/azure-storage-php.git",
-                "reference": "d076bea283df81822d1262b51989904c9821d414"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/Azure-OSS/azure-storage-php/zipball/d076bea283df81822d1262b51989904c9821d414",
-                "reference": "d076bea283df81822d1262b51989904c9821d414",
-                "shasum": ""
-            },
-            "require": {
-                "caseyamcl/guzzle_retry_middleware": "^2.10",
-                "ext-curl": "*",
-                "ext-json": "*",
-                "ext-simplexml": "*",
-                "guzzlehttp/guzzle": "^7.8",
-                "php": "^8.1"
-            },
-            "require-dev": {
-                "guzzlehttp/test-server": "^0.1.0",
-                "laravel/pint": "1.20.0",
-                "phpbench/phpbench": "^1.3",
-                "phpstan/phpstan": "^2.0",
-                "phpstan/phpstan-deprecation-rules": "^2.0",
-                "phpstan/phpstan-strict-rules": "^2.0",
-                "phpunit/phpunit": "^10.5"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "AzureOss\\Storage\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Brecht Vermeersch",
-                    "email": "brechtvermeersch@outlook.be"
-                },
-                {
-                    "name": "Pim Jansen",
-                    "email": "pimjansen@gmail.com"
-                }
-            ],
-            "description": "Azure Storage PHP SDK",
-            "keywords": [
-                "azure",
-                "php",
-                "sdk",
-                "storage"
-            ],
-            "support": {
-                "issues": "https://github.com/Azure-OSS/azure-storage-php/issues",
-                "source": "https://github.com/Azure-OSS/azure-storage-php/tree/1.3.1"
-            },
-            "time": "2025-02-07T17:39:11+00:00"
-        },
         {
             "name": "caseyamcl/guzzle_retry_middleware",
             "version": "v2.12.1",
@@ -1481,16 +1417,16 @@
         },
         {
             "name": "phpstan/phpstan",
-            "version": "2.1.14",
+            "version": "2.1.16",
             "source": {
                 "type": "git",
                 "url": "https://github.com/phpstan/phpstan.git",
-                "reference": "8f2e03099cac24ff3b379864d171c5acbfc6b9a2"
+                "reference": "b8c1cf533cba0c305d91c6ccd23f3dd0566ba5f9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/8f2e03099cac24ff3b379864d171c5acbfc6b9a2",
-                "reference": "8f2e03099cac24ff3b379864d171c5acbfc6b9a2",
+                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/b8c1cf533cba0c305d91c6ccd23f3dd0566ba5f9",
+                "reference": "b8c1cf533cba0c305d91c6ccd23f3dd0566ba5f9",
                 "shasum": ""
             },
             "require": {
@@ -1535,7 +1471,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2025-05-02T15:32:28+00:00"
+            "time": "2025-05-16T09:40:10+00:00"
         },
         {
             "name": "phpunit/php-code-coverage",
