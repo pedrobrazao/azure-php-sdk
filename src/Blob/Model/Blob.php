@@ -22,4 +22,12 @@ final readonly class Blob implements \Stringable
 
         return $this->stream->getContents();
     }
+
+    public static function fromXml(\SimpleXMLElement $xml): self
+    {
+        return new self(
+            (string) $xml->Name,
+            BlobProperties::fromXml($xml->Properties),
+        );
+    }
 }

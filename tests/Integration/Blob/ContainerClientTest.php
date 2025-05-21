@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace AzurePhp\Tests\Storage\Integration\Blob;
 
 use AzurePhp\Storage\Blob\AccountClient;
+use AzurePhp\Storage\Blob\Model\BlobUpload;
 use AzurePhp\Tests\Storage\Integration\AbstractIntegrationTestCase;
 
 /**
@@ -23,6 +24,34 @@ final class ContainerClientTest extends AbstractIntegrationTestCase
 
         $client->create();
         $this->assertTrue($client->exists());
+
+        $client->delete();
+        $this->assertFalse($client->exists());
+    }
+
+    public function testListBlobs(): void
+    {
+        $client = AccountClient::fromConnectionString($this->getLocalConnectionString())->getContainerClient(uniqid('test-'));
+        $client->create();
+        $this->assertTrue($client->exists());
+
+        $names = [];
+
+        for ($i = 0; $i < random_int(5, 20); ++$i) {
+            $name = uniqid().'.txt';
+            $client->getBlobClient($name)->upload(BlobUpload::fromString(random_bytes(random_int(100, 300))));
+            $names[] = $name;
+        }
+
+        $blobs = [];
+
+        foreach ($client->listBlobs() as $blob) {
+            $blobs[$blob->name] = $blob;
+        }
+
+        foreach ($names as $name) {
+            $this->assertArrayHasKey($name, $blobs);
+        }
 
         $client->delete();
         $this->assertFalse($client->exists());
