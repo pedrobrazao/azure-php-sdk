@@ -6,6 +6,8 @@ namespace AzurePhp\Storage\Blob;
 
 use AzurePhp\Storage\Blob\Model\Blob;
 use AzurePhp\Storage\Blob\Model\BlobList;
+use AzurePhp\Storage\Blob\Model\BlobProperties;
+use AzurePhp\Storage\Blob\Model\Metadata;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Query;
 use GuzzleHttp\Psr7\Request;
@@ -101,5 +103,29 @@ final readonly class ContainerClient
                 break;
             }
         }
+    }
+
+    public function getProperties(): BlobProperties
+    {
+        $query = ['restype' => 'container'];
+        $uri = $this->uri->withQuery(Query::build($query));
+        $request = new Request('GET', $uri);
+        $response = $this->client->send($request);
+
+        return BlobProperties::fromResponse($response);
+    }
+
+    public function setMetadata(Metadata $metadata): void
+    {
+        $query = ['restype' => 'container', 'comp' => 'metadata'];
+        $uri = $this->uri->withQuery(Query::build($query));
+        $request = new Request('PUT', $uri);
+
+        foreach ($metadata->toHeaders() as $name => $value) {
+            $request = $request->withHeader($name, $value);
+        }
+
+        $this->client->send($request);
+
     }
 }
