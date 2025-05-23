@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace AzurePhp\Storage\Blob\Model;
+namespace AzurePhp\Storage\Common\Model;
 
 final class Metadata implements \Countable
 {
@@ -63,5 +63,20 @@ final class Metadata implements \Countable
         }
 
         return $headers;
+    }
+
+    public static function fromXml(\SimpleXMLElement $xml): self
+    {
+        if (null === $xml->metadata) {
+            return new self([]);
+        }
+
+        $metadata = [];
+
+        foreach ($xml->metadata->children() as $element) {
+            $metadata[(string) $element->Key] = (string) $element->Value;
+        }
+
+        return new self($metadata);
     }
 }

@@ -7,10 +7,10 @@ namespace AzurePhp\Storage\Blob;
 use AzurePhp\Storage\Blob\Model\Blob;
 use AzurePhp\Storage\Blob\Model\BlobProperties;
 use AzurePhp\Storage\Blob\Model\BlobUpload;
-use AzurePhp\Storage\Blob\Model\Metadata;
 use AzurePhp\Storage\Blob\Model\Tags;
 use AzurePhp\Storage\Blob\Model\UploadBlock;
 use AzurePhp\Storage\Blob\Model\UploadBlockList;
+use AzurePhp\Storage\Common\Model\Metadata as ModelMetadata;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Query;
 use GuzzleHttp\Psr7\Request;
@@ -174,7 +174,7 @@ final readonly class BlobClient
         return new Blob($name, BlobProperties::fromResponse($response), $response->getBody());
     }
 
-    public function setMetadata(Metadata $metadata): void
+    public function setMetadata(ModelMetadata $metadata): void
     {
         $query = ['comp' => 'metadata'];
         $uri = $this->uri->withQuery(Query::build($query));

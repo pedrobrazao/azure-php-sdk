@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AzurePhp\Storage\Blob\Model;
 
+use AzurePhp\Storage\Common\Model\Metadata;
 use Psr\Http\Message\ResponseInterface;
 
 final readonly class ContainerProperties

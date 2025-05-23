@@ -6,7 +6,7 @@ namespace AzurePhp\Tests\Storage\Integration\Blob;
 
 use AzurePhp\Storage\Blob\AccountClient;
 use AzurePhp\Storage\Blob\Model\BlobUpload;
-use AzurePhp\Storage\Blob\Model\Metadata;
+use AzurePhp\Storage\Common\Model\Metadata;
 use AzurePhp\Storage\Blob\Model\Tags;
 use AzurePhp\Tests\Storage\Integration\AbstractIntegrationTestCase;
 

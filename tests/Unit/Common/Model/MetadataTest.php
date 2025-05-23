@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace AzurePhp\Tests\Storage\Unit\Blob\Model;
+namespace AzurePhp\Tests\Storage\Unit\Common\Model;
 
-use AzurePhp\Storage\Blob\Model\Metadata;
+use AzurePhp\Storage\Common\Model\Metadata;
 use PHPUnit\Framework\TestCase;
 
 /**
