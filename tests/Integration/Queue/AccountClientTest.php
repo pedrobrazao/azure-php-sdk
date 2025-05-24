@@ -28,7 +28,7 @@ final class AccountClientTest extends AbstractIntegrationTestCase
 
         $queues = [];
 
-        foreach ($client->listQueues() as $queue) {
+        foreach ($client->listQueues('', true) as $queue) {
             $queues[$queue->name] = $queue;
         }
 

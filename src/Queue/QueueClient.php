@@ -18,6 +18,14 @@ final readonly class QueueClient
         private UriInterface $uri
     ) {}
 
+    public function getMessageClient(): MessageClient
+    {
+        $path = rtrim($this->uri->getPath(), '/').'/messages';
+        $uri = $this->uri->withPath($path);
+
+        return new MessageClient($this->client, $uri);
+    }
+
     /**
      * @see https://learn.microsoft.com/en-us/rest/api/storageservices/create-queue4
      */
