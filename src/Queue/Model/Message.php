@@ -18,10 +18,6 @@ final readonly class Message
 
     public static function fromXml(\SimpleXMLElement $xml): self
     {
-        if ($xml->QueueMessage instanceof \SimpleXMLElement) {
-            $xml = $xml->QueueMessage;
-        }
-
         $text = null;
 
         if (null !== $xml->MessageText) {
