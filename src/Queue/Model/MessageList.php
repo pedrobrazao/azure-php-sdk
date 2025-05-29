@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace AzurePhp\Storage\Queue\Model;
 
+use AzurePhp\Storage\Common\Exception\EmptyListException;
+
 final readonly class MessageList implements \Countable
 {
     /**
@@ -12,11 +14,6 @@ final readonly class MessageList implements \Countable
     public function __construct(
         public array $messages
     ) {}
-
-    public function count(): int
-    {
-        return count($this->messages);
-    }
 
     public static function fromXml(\SimpleXMLElement $xml): self
     {
@@ -27,5 +24,19 @@ final readonly class MessageList implements \Countable
         }
 
         return new self($messages);
+    }
+
+    public function count(): int
+    {
+        return count($this->messages);
+    }
+
+    public function first(): Message
+    {
+        if (0 === $this->count()) {
+            throw new EmptyListException();
+        }
+
+        return $this->messages[0];
     }
 }

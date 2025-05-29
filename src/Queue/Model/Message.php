@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace AzurePhp\Storage\Queue\Model;
 
+use AzurePhp\Storage\Queue\Exception\InvalidMessageException;
+
 final readonly class Message
 {
     public function __construct(
@@ -18,6 +20,10 @@ final readonly class Message
 
     public static function fromXml(\SimpleXMLElement $xml): self
     {
+        if ('' === $id = (string) $xml->MessageId) {
+            throw new InvalidMessageException('Message ID must be string and it can\'t be empty.');
+        }
+
         $text = null;
 
         if (null !== $xml->MessageText) {
@@ -25,7 +31,7 @@ final readonly class Message
         }
 
         return new self(
-            (string) $xml->MessageId,
+            $id,
             new \DateTimeImmutable((string) $xml->InsertionTime),
             new \DateTimeImmutable((string) $xml->ExpirationTime),
             new \DateTimeImmutable((string) $xml->TimeNextVisible),

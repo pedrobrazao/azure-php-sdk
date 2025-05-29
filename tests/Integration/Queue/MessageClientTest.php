@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace AzurePhp\Tests\Storage\Integration\Queue;
 
 use AzurePhp\Storage\Queue\AccountClient;
-use AzurePhp\Storage\Queue\Model\Message;
+use AzurePhp\Storage\Queue\MessageClient;
+use AzurePhp\Storage\Queue\QueueClient;
 use AzurePhp\Tests\Storage\Integration\AbstractIntegrationTestCase;
+use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Psr7\Response;
+use GuzzleHttp\Psr7\Uri;
 
 /**
  * @internal
@@ -15,100 +19,79 @@ use AzurePhp\Tests\Storage\Integration\AbstractIntegrationTestCase;
  */
 final class MessageClientTest extends AbstractIntegrationTestCase
 {
-    public function testPutMessage(): void
+    private ?QueueClient $queueClient = null;
+
+    public function createTestQueue(): QueueClient
     {
-        $queueClient = AccountClient::fromConnectionString($this->getLocalConnectionString())->getQueueClient(uniqid('test-'));
-        $this->assertFalse($queueClient->exists());
+        
+        $this->queueClient = AccountClient::fromConnectionString($this->getLocalConnectionString())->getQueueClient(uniqid('test-'));
+        $this->assertFalse($this->queueClient->exists());
 
-        $queueClient->create();
-        $this->assertTrue($queueClient->exists());
+        $this->queueClient->create();
+        $this->assertTrue($this->queueClient->exists());
 
-        $text = json_encode(['subject' => 'My message subject']);
-
-        $message = $queueClient->getMessageClient()->put($text);
-        $this->assertInstanceOf(Message::class, $message);
-        $this->assertNotSame('', $message->id);
-
-        $queueClient->delete();
-        $this->assertFalse($queueClient->exists());
+        return $this->queueClient;
     }
 
-    public function testGetMessage(): void
+    public function deleteTestQueue(): void
     {
-        $queueClient = AccountClient::fromConnectionString($this->getLocalConnectionString())->getQueueClient(uniqid('test-'));
-        $this->assertFalse($queueClient->exists());
+        if (null === $this->queueClient) {
+            return;
+        }
 
-        $queueClient->create();
-        $this->assertTrue($queueClient->exists());
+        $this->assertTrue($this->queueClient->exists());
 
-        $messageClient = $queueClient->getMessageClient();
+        $this->queueClient->delete();
+        $this->assertFalse($this->queueClient->exists());
+    }
+
+    public function testPutMessage(): void
+    {
+        $messageClient = $this->createTestQueue()->getMessageClient();
+
         $text = json_encode(['subject' => 'My message subject']);
         $message = $messageClient->put($text);
-        $this->assertInstanceOf(Message::class, $message);
-        $this->assertNotSame('', $message->id);
 
-        $messageList = $messageClient->get();
-        $this->assertCount(1, $messageList);
-        $this->assertSame(1, $messageList->messages[0]->dequeueCount);
-        $this->assertSame($text, $messageList->messages[0]->text);
+        $this->assertSame($message->id, $messageClient->get()->first()->id);
 
-        $this->assertEmpty($messageClient->get()->messages);
-
-        $queueClient->delete();
-        $this->assertFalse($queueClient->exists());
+        $this->deleteTestQueue();
     }
 
     public function testPeekMessage(): void
     {
-        $queueClient = AccountClient::fromConnectionString($this->getLocalConnectionString())->getQueueClient(uniqid('test-'));
-        $this->assertFalse($queueClient->exists());
+        $messageClient = $this->createTestQueue()->getMessageClient();
 
-        $queueClient->create();
-        $this->assertTrue($queueClient->exists());
-
-        $messageClient = $queueClient->getMessageClient();
         $text = json_encode(['subject' => 'My message subject']);
         $message = $messageClient->put($text);
-        $this->assertInstanceOf(Message::class, $message);
-        $this->assertNotSame('', $message->id);
 
-        $messageList = $messageClient->peek();
-        $this->assertCount(1, $messageList);
-        $this->assertSame(0, $messageList->messages[0]->dequeueCount);
-        $this->assertSame($text, $messageList->messages[0]->text);
+        $this->assertSame($message->id, $messageClient->peek()->first()->id);
 
-        $messageList2 = $messageClient->peek();
-        $this->assertCount(1, $messageList2);
-        $this->assertSame(0, $messageList2->messages[0]->dequeueCount);
-        $this->assertSame($text, $messageList2->messages[0]->text);
-
-        $queueClient->delete();
-        $this->assertFalse($queueClient->exists());
+        $this->deleteTestQueue();
     }
 
-    public function testDeleteMessage(): void
+    public function testUpdateMessage(): void
     {
-        $queueClient = AccountClient::fromConnectionString($this->getLocalConnectionString())->getQueueClient(uniqid('test-'));
-        $this->assertFalse($queueClient->exists());
+        $client = $this->createStub(ClientInterface::class);
+        $client->method('send')->willReturn(new Response(204));
+        $uri = new Uri($_ENV['AZURE_STORAGE_QUEUE_ENDPOINT'].'/myqueue/messages');
+        $messageClient = new MessageClient($client, $uri);
 
-        $queueClient->create();
-        $this->assertTrue($queueClient->exists());
+        // @phpstan-ignore-next-line
+        $this->assertNull($messageClient->update('id', 'pop-receipt', 'new-message'));
+    }
 
-        $messageClient = $queueClient->getMessageClient();
-        $text = json_encode(['subject' => 'My message subject']);
-        $message = $messageClient->put($text);
-        $this->assertInstanceOf(Message::class, $message);
-        $this->assertNotSame('', $message->id);
+    public function testClearMessages(): void
+    {
+        $messageClient = $this->createTestQueue()->getMessageClient();
 
-        $messageList = $messageClient->peek();
-        $this->assertCount(1, $messageList);
+        for ($i = 0; $i < 3; ++$i) {
+            $messageClient->put(uniqid());
+            $this->assertCount(1, $messageClient->peek());
+        }
 
-        $messageClient->delete($message->id, $message->popReceipt);
+        $messageClient->clear();
+        $this->assertCount(0, $messageClient->peek());
 
-        $messageList2 = $messageClient->peek();
-        $this->assertCount(0, $messageList2);
-
-        $queueClient->delete();
-        $this->assertFalse($queueClient->exists());
+        $this->deleteTestQueue();
     }
 }
