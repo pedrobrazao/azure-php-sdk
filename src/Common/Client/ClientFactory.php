@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace AzurePhp\Storage\Common\Client;
 
-use AzurePhp\Storage\Common\Auth\SharedAccountKey;
+use AzurePhp\Storage\Common\Auth\SharedAccessKeyInterface;
 use GuzzleHttp\Client;
 use GuzzleHttp\HandlerStack;
 use GuzzleRetry\GuzzleRetryMiddleware;
@@ -13,26 +13,40 @@ use Psr\Http\Message\UriInterface;
 
 final readonly class ClientFactory
 {
+    /**
+     * @param array<string, string> $headers
+     */
     public function __construct(
         private UriInterface $uri,
-        private ?SharedAccountKey $key = null
+        private array $headers,
+        private ?SharedAccessKeyInterface $accessKey = null
     ) {}
 
-    public function create(): ClientInterface
+    /**
+     * @param array<callable|scalar|scalar[]> $options
+     *
+     * @see https://docs.guzzlephp.org/en/stable/request-options.html
+     */
+    public function create(array $options = []): ClientInterface
     {
-        $stack = HandlerStack::create();
+        $handler = $options['handler'] ?? HandlerStack::create();
 
-        $stack->push(new HeaderClientRequestIdMiddleware());
-        $stack->push(new HeaderDateMiddleware());
-        $stack->push(new HeaderVersionMiddleware());
-        $stack->push(new QueryStringMiddleware($this->uri->getQuery()));
+        if (false === $handler instanceof HandlerStack) {
+            $handler = HandlerStack::create($handler);
+        }
 
-        if (null !== $this->key) {
-            $stack->push(new HeaderAuthorizationMiddleware($this->key));
+        if ('' !== $defaultQuery =  $this->uri->getQuery()) {
+            $handler->push(new QueryStringMiddleware($defaultQuery));
+        }
+
+        $handler->push(new HeadersMiddleware($this->headers));
+
+        if (null !== $this->accessKey) {
+            $handler->push(new AuthorizationMiddleware($this->accessKey));
         }
 
         // @see https://learn.microsoft.com/en-us/azure/architecture/best-practices/retry-service-specific#general-rest-and-retry-guidelines
-        $stack->push(GuzzleRetryMiddleware::factory([
+        $handler->push(GuzzleRetryMiddleware::factory([
             'retry_on_status' => [
                 408, // Request Timeout
                 429, // Too Many Requests
@@ -43,6 +57,8 @@ final readonly class ClientFactory
             ],
         ]));
 
-        return new Client(['handler' => $stack]);
+        $options['handler'] = $handler;
+
+        return new Client($options);
     }
 }

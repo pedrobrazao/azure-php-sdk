@@ -21,7 +21,9 @@ final class ConnectionStringParser
     /**
      * @param string[] $parts
      */
-    public function __construct(private readonly array $parts = []) {}
+    public function __construct(
+        private readonly array $parts = []
+    ) {}
 
     public static function parse(string $connectionString): self
     {
@@ -61,8 +63,10 @@ final class ConnectionStringParser
             return $this->endpoints[$name];
         }
 
-        if (isset($this->parts[ucfirst($name).'Endpoint'])) {
-            $this->endpoints[$name] = new Uri($this->parts[ucfirst($name).'Endpoint']);
+        $endpointName = ucfirst($name).'Endpoint';
+
+        if (isset($this->parts[$endpointName])) {
+            $this->endpoints[$name] = new Uri($this->parts[$endpointName]);
         }
 
         if (false === isset($this->endpoints[$name]) && isset($this->parts['AccountName'], $this->parts['EndpointSuffix'])) {
@@ -70,7 +74,7 @@ final class ConnectionStringParser
         }
 
         if (false === isset($this->endpoints[$name])) {
-            throw new InvalidConnectionStringException(sprintf('Missing endpoint for "%s" service.', $name));
+            throw new InvalidConnectionStringException(sprintf('Missing endpoint for "%s" service.', ucfirst($name)));
         }
 
         if (isset($this->parts['DefaultEndpointsProtocol'])) {
