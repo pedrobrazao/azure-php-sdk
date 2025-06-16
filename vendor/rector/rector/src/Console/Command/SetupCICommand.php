@@ -3,13 +3,13 @@
 declare (strict_types=1);
 namespace Rector\Console\Command;
 
-use RectorPrefix202505\Nette\Utils\FileSystem;
-use RectorPrefix202505\OndraM\CiDetector\CiDetector;
+use RectorPrefix202506\Nette\Utils\FileSystem;
+use RectorPrefix202506\OndraM\CiDetector\CiDetector;
 use Rector\Git\RepositoryHelper;
-use RectorPrefix202505\Symfony\Component\Console\Command\Command;
-use RectorPrefix202505\Symfony\Component\Console\Input\InputInterface;
-use RectorPrefix202505\Symfony\Component\Console\Output\OutputInterface;
-use RectorPrefix202505\Symfony\Component\Console\Style\SymfonyStyle;
+use RectorPrefix202506\Symfony\Component\Console\Command\Command;
+use RectorPrefix202506\Symfony\Component\Console\Input\InputInterface;
+use RectorPrefix202506\Symfony\Component\Console\Output\OutputInterface;
+use RectorPrefix202506\Symfony\Component\Console\Style\SymfonyStyle;
 use function sprintf;
 final class SetupCICommand extends Command
 {
@@ -37,7 +37,7 @@ final class SetupCICommand extends Command
         if ($ci === CiDetector::CI_GITHUB_ACTIONS) {
             return $this->handleGithubActions();
         }
-        $noteMessage = sprintf('Only Github and GitLab are currently supported.%s Contribute your CI template to Rector to make this work: %s', \PHP_EOL, 'https://github.com/rectorphp/rector-src/');
+        $noteMessage = sprintf('Only GitHub and GitLab are currently supported.%s Contribute your CI template to Rector to make this work: %s', \PHP_EOL, 'https://github.com/rectorphp/rector-src/');
         $this->symfonyStyle->note($noteMessage);
         return self::SUCCESS;
     }

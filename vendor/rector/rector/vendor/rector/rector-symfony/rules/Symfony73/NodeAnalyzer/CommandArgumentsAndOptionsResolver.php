@@ -10,10 +10,25 @@ use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\NodeFinder;
 use Rector\Exception\ShouldNotHappenException;
+use Rector\PhpDocParser\NodeTraverser\SimpleCallableNodeTraverser;
+use Rector\PhpParser\Node\Value\ValueResolver;
 use Rector\Symfony\Symfony73\ValueObject\CommandArgument;
 use Rector\Symfony\Symfony73\ValueObject\CommandOption;
 final class CommandArgumentsAndOptionsResolver
 {
+    /**
+     * @readonly
+     */
+    private ValueResolver $valueResolver;
+    /**
+     * @readonly
+     */
+    private SimpleCallableNodeTraverser $simpleCallableNodeTraverser;
+    public function __construct(ValueResolver $valueResolver, SimpleCallableNodeTraverser $simpleCallableNodeTraverser)
+    {
+        $this->valueResolver = $valueResolver;
+        $this->simpleCallableNodeTraverser = $simpleCallableNodeTraverser;
+    }
     /**
      * @return CommandArgument[]
      */
@@ -24,13 +39,22 @@ final class CommandArgumentsAndOptionsResolver
         foreach ($addArgumentMethodCalls as $addArgumentMethodCall) {
             // @todo extract name, type and requirements
             $addArgumentArgs = $addArgumentMethodCall->getArgs();
-            $nameArgValue = $addArgumentArgs[0]->value;
-            if (!$nameArgValue instanceof String_) {
+            $optionName = $this->valueResolver->getValue($addArgumentArgs[0]->value);
+            if ($optionName === null) {
                 // we need string value, otherwise param will not have a name
                 throw new ShouldNotHappenException('Argument name is required');
             }
-            $optionName = $nameArgValue->value;
-            $commandArguments[] = new CommandArgument($optionName);
+            $mode = isset($addArgumentArgs[1]) ? $this->valueResolver->getValue($addArgumentArgs[1]->value) : null;
+            if ($mode !== null && !\is_numeric($mode)) {
+                // we need numeric value or null, otherwise param will not have a name
+                throw new ShouldNotHappenException('Argument mode is required to be null or numeric');
+            }
+            $description = isset($addArgumentArgs[2]) ? $this->valueResolver->getValue($addArgumentArgs[2]->value) : null;
+            if (!\is_string($description)) {
+                // we need string value, otherwise param will not have a name
+                throw new ShouldNotHappenException('Argument description is required');
+            }
+            $commandArguments[] = new CommandArgument($addArgumentArgs[0]->value, $addArgumentArgs[1]->value, $addArgumentArgs[2]->value);
         }
         return $commandArguments;
     }
@@ -59,15 +83,23 @@ final class CommandArgumentsAndOptionsResolver
      */
     private function findMethodCallsByName(ClassMethod $classMethod, string $desiredMethodName) : array
     {
-        $nodeFinder = new NodeFinder();
-        return $nodeFinder->find($classMethod, function (Node $node) use($desiredMethodName) : bool {
+        $calls = [];
+        $shouldReverse = \false;
+        $this->simpleCallableNodeTraverser->traverseNodesWithCallable($classMethod, function (Node $node) use(&$calls, $desiredMethodName, &$shouldReverse) {
             if (!$node instanceof MethodCall) {
-                return \false;
+                return null;
             }
             if (!$node->name instanceof Identifier) {
-                return \false;
+                return null;
             }
-            return $node->name->toString() === $desiredMethodName;
+            if ($node->name->toString() === $desiredMethodName) {
+                if ($node->var instanceof MethodCall) {
+                    $shouldReverse = \true;
+                }
+                $calls[] = $node;
+            }
+            return null;
         });
+        return $shouldReverse ? \array_reverse($calls) : $calls;
     }
 }

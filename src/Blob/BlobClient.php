@@ -4,215 +4,536 @@ declare(strict_types=1);
 
 namespace AzurePhp\Storage\Blob;
 
-use AzurePhp\Storage\Blob\Model\Blob;
-use AzurePhp\Storage\Blob\Model\BlobProperties;
-use AzurePhp\Storage\Blob\Model\BlobUpload;
-use AzurePhp\Storage\Blob\Model\Tags;
-use AzurePhp\Storage\Blob\Model\UploadBlock;
-use AzurePhp\Storage\Blob\Model\UploadBlockList;
-use AzurePhp\Storage\Common\Model\Metadata as ModelMetadata;
+use AzurePhp\Storage\Common\Client\AbstractClient;
+use AzurePhp\Storage\Blob\Auth\SharedAccessKey;
 use GuzzleHttp\Exception\RequestException;
-use GuzzleHttp\Psr7\Query;
-use GuzzleHttp\Psr7\Request;
-use GuzzleHttp\ClientInterface;
-use GuzzleHttp\Pool;
 use GuzzleHttp\Promise\PromiseInterface;
+use GuzzleHttp\Psr7\Query;
 use GuzzleHttp\Psr7\Utils;
+use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UriInterface;
 
-final readonly class BlobClient
+final readonly class BlobClient extends AbstractClient
 {
-    public function __construct(
-        private ClientInterface $client,
-        private UriInterface $uri
-    ) {}
+    /**
+     * @param array<callable|scalar|scalar[]> $options
+     */
+    public static function create(string $connectionString, array $options = []): self
+    {
+        return self::factory($connectionString, 'blob', [], SharedAccessKey::class, $options);
+    }
 
     /**
-     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/put-blob
+     * @param array<string, string> $params
      */
-    public function upload(BlobUpload $blob): void
+    private function uriForContainer(string $containerName, array $params = []): UriInterface
     {
-        if (null === $blob->stream->getSize() || false === $blob->stream->isSeekable()) {
-            $this->uploadBlocks($blob);
+        $path = sprintf('%s/%s/', rtrim($this->uri->getPath(), '/'), trim($containerName));
+        $query = Query::build([...Query::parse($this->uri->getQuery()), ...$params]);
 
-            return;
-        }
-
-        if ($blob->stream->getSize() > $blob->initialTransferSize) {
-            $this->uploadAsync($blob);
-
-            return;
-        }
-
-        $request = (new Request('PUT', $this->uri))->withBody($blob->stream)
-            ->withHeader('x-ms-blob-type', 'BlockBlob')
-            ->withHeader('content-length', (string) $blob->stream->getSize())
-            ->withHeader('content-type', $blob->contentType)
-        ;
-
-        $this->client->send($request);
+        return $this->uri->withPath($path)->withQuery($query);
     }
 
-    private function uploadBlocks(BlobUpload $blob): void
+    /**
+     * @param array<string, string> $params
+     */
+    private function uriForBlob(string $containerName, string $blobName, array $params = []): UriInterface
     {
-        $blocks = new UploadBlockList();
-        $context = hash_init('md5');
+        $uri = $this->uriForContainer($containerName, $params);
+        $path = sprintf('%s/%s', rtrim($uri->getPath(), '/'), trim($blobName));
 
-        while (true) {
-            $contents = $blob->stream->read($blob->maximumTransferSize);
-
-            if ('' === $contents) {
-                break;
-            }
-
-            $block = new UploadBlock(Utils::streamFor($contents), $blocks->count());
-            $blocks->push($block);
-
-            hash_update($context, $contents);
-
-            $this->putBlockAsync($block)->wait();
-        }
-
-        $contentMd5 = hash_final($context, true);
-
-        $this->putBlockList($blocks, $blob->contentType, $contentMd5);
+        return $this->uri->withPath($path);
     }
 
-    private function uploadAsync(BlobUpload $blob): void
+    /**
+     * @param array<string, array<string, scalar>|callable|scalar> $options
+     */
+    public function containerExists(string $containerName, array $options = []): bool
     {
-        $blocks = new UploadBlockList();
+        $uri = $this->uriForContainer($containerName, [
+            'restype' => 'container',
+        ]);
 
-        $generator = function () use ($blob, $blocks) {
-            while (true) {
-                $contents = $blob->stream->read($blob->maximumTransferSize);
-
-                if ('' === $contents) {
-                    break;
-                }
-
-                $block = new UploadBlock(Utils::streamFor($contents), $blocks->count());
-                $blocks->push($block);
-
-                yield fn () => $this->putBlockAsync($block);
-            }
-        };
-
-        $pool = new Pool($this->client, $generator(), ['concurrency' => $blob->maximumConcurrency]);
-        $pool->promise()->wait();
-
-        $contentMd5 = Utils::hash($blob->stream, 'md5', true);
-
-        $this->putBlockList($blocks, $blob->contentType, $contentMd5);
-    }
-
-    private function putBlockAsync(UploadBlock $block): PromiseInterface
-    {
-        $query = ['comp' => 'block', 'blockid' => $block->getId()];
-        $uri = $this->uri->withQuery(Query::build($query));
-        $request = (new Request('PUT', $uri))
-            ->withHeader('content-length', (string) $block->contents->getSize())
-            ->withBody($block->contents)
-        ;
-
-        return $this->client->sendAsync($request);
-    }
-
-    private function putBlockList(UploadBlockList $blocks, string $contentType, string $contentMd5): void
-    {
-        $query = ['comp' => 'blocklist'];
-        $uri = $this->uri->withQuery(Query::build($query));
-        $body = Utils::streamFor($blocks->toXml()->asXML());
-        $request = (new Request('PUT', $uri))
-            ->withHeader('x-ms-blob-content-type', $contentType)
-            ->withHeader('x-ms-blob-content-md5', base64_encode($contentMd5))
-            ->withBody($body)
-        ;
-
-        $this->client->send($request);
-    }
-
-    public function getProperties(): BlobProperties
-    {
-        $request = new Request('HEAD', $this->uri);
-        $response = $this->client->send($request);
-
-        return BlobProperties::fromResponse($response);
-    }
-
-    public function exists(): bool
-    {
         try {
-            $this->getProperties();
-        } catch (\Throwable $e) {
-            if (false === $e instanceof RequestException || null === $response = $e->getResponse()) {
-                throw $e;
-            }
+            $response = $this->head($uri, $options);
+        } catch (RequestException $e) {
+            $response = $e->getResponse();
 
-            if (404 === $response->getStatusCode()) {
+            if (null !== $response && 404 === $response->getStatusCode()) {
                 return false;
             }
 
             throw $e;
         }
 
-        return true;
+        return 200 === $response->getStatusCode();
     }
 
-    public function delete(): void
+    /**
+     * @param array<string, string>                   $metadata
+     * @param array<string, callable|scalar|scalar[]> $options
+     *
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/create-container
+     */
+    public function createContainer(string $containerName, array $metadata = [], array $options = []): PromiseInterface
     {
-        $this->client->send(new Request('DELETE', $this->uri));
-    }
+        $uri = $this->uriForContainer($containerName, [
+            'restype' => 'container',
+        ]);
 
-    public function download(): Blob
-    {
-        $request = new Request('GET', $this->uri);
-        $response = $this->client->send($request, ['stream' => true]);
-
-        $parts = explode('/', $this->uri->getPath());
-        $name = end($parts);
-
-        return new Blob($name, BlobProperties::fromResponse($response), $response->getBody());
-    }
-
-    public function setMetadata(ModelMetadata $metadata): void
-    {
-        $query = ['comp' => 'metadata'];
-        $uri = $this->uri->withQuery(Query::build($query));
-        $request = new Request('PUT', $uri);
-
-        foreach ($metadata->toHeaders() as $name => $value) {
-            $request = $request->withHeader($name, $value);
+        foreach ($metadata as $name => $value) {
+            $options['headers']['x-ms-meta-'.$name] = $value;
         }
 
-        $this->client->send($request);
+        return $this->putAsync($uri, $options);
     }
 
-    public function copy(UriInterface $source): void
+    /**
+     * @param array<string, callable|scalar|scalar[]> $options
+     *
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/delete-container
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/specifying-conditional-headers-for-blob-service-operations
+     */
+    public function deleteContainer(string $containerName, ?string $leaseId = null, array $options = []): PromiseInterface
     {
-        $request = (new Request('PUT', $this->uri))->withHeader('x-ms-copy-source', (string) $source);
+        $uri = $this->uriForContainer($containerName, [
+            'restype' => 'container',
+        ]);
 
-        $this->client->send($request);
+        if (null !== $leaseId) {
+            $options['headers']['x-ms-lease-id'] = $leaseId;
+        }
+
+        return $this->deleteAsync($uri, $options);
     }
 
-    public function setTags(Tags $tags): void
+    /**
+     * @param array<string, callable|scalar|scalar[]> $options
+     *
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/list-containers2
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/specifying-conditional-headers-for-blob-service-operations
+     */
+    public function listContainers(string $prefix = '', ?string $marker = null, int $maxResults = 5000, bool $withMetadata = false, array $options = []): PromiseInterface
     {
-        $query = ['comp' => 'tags'];
+        $query = [
+            'comp' => 'list',
+            'prefix' => $prefix,
+            'maxresults' => $maxResults,
+        ];
+
+        if (null !== $marker) {
+            $query['marker'] = $marker;
+        }
+
+        if ($withMetadata) {
+            $query['include'] = 'metadata';
+        }
+
         $uri = $this->uri->withQuery(Query::build($query));
-        $body = Utils::streamFor($tags->toXml()->asXML());
-        $request = (new Request('PUT', $uri))->withBody($body);
 
-        $this->client->send($request);
+        return $this->getAsync($uri, $options);
     }
 
-    public function getTags(): Tags
+    /**
+     * @param array<string, callable|scalar|scalar[]> $options
+     *
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/get-container-properties
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/specifying-conditional-headers-for-blob-service-operations
+     */
+    public function getContainerProperties(string $containerName, ?string $leaseId = null, array $options = []): PromiseInterface
     {
-        $query = ['comp' => 'tags'];
+        $uri = $this->uriForContainer($containerName, [
+            'restype' => 'container',
+        ]);
+
+        if (null !== $leaseId) {
+            $options['headers']['x-ms-lease-id'] = $leaseId;
+        }
+
+        return $this->headAsync($uri, $options);
+    }
+
+    /**
+     * @param array<string, callable|scalar|scalar[]> $options
+     *
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/get-container-metadata
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/specifying-conditional-headers-for-blob-service-operations
+     */
+    public function getContainerMetadata(string $containerName, ?string $leaseId = null, array $options = []): PromiseInterface
+    {
+        $uri = $this->uriForContainer($containerName, [
+            'restype' => 'container',
+            'comp' => 'metadata',
+        ]);
+
+        if (null !== $leaseId) {
+            $options['headers']['x-ms-lease-id'] = $leaseId;
+        }
+
+        return $this->headAsync($uri, $options);
+    }
+
+    /**
+     * @param array<string, string>                   $metadata
+     * @param array<string, callable|scalar|scalar[]> $options
+     *
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/set-container-metadata
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/specifying-conditional-headers-for-blob-service-operations
+     */
+    public function setContainerMetadata(string $containerName, array $metadata, ?string $leaseId = null, array $options = []): PromiseInterface
+    {
+        $uri = $this->uriForContainer($containerName, [
+            'restype' => 'container',
+            'comp' => 'metadata',
+        ]);
+
+        if (null !== $leaseId) {
+            $options['headers']['x-ms-lease-id'] = $leaseId;
+        }
+
+        foreach ($metadata as $name => $value) {
+            $options['headers']['x-ms-meta-'.$name] = $value;
+        }
+
+        return $this->putAsync($uri, $options);
+    }
+
+    /**
+     * @param array<string, callable|scalar|scalar[]> $options
+     *
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/lease-container
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/specifying-conditional-headers-for-blob-service-operations
+     */
+    public function leaseContainer(string $containerName, string $leaseAction, ?string $leaseId = null, ?int $leaseDuration = null, array $options = []): PromiseInterface
+    {
+        $uri = $this->uriForContainer($containerName, [
+            'restype' => 'container',
+            'comp' => 'lease',
+        ]);
+
+        $options['headers']['x-ms-lease-action'] = $leaseAction;
+
+        if (null !== $leaseId) {
+            $options['headers']['x-ms-lease-id'] = $leaseId;
+        }
+
+        if (null !== $leaseDuration) {
+            $options['headers']['x-ms-lease-duration'] = $leaseDuration;
+        }
+
+        return $this->putAsync($uri, $options);
+    }
+
+    /**
+     * @param array<string, array<string, scalar>|callable|scalar> $options
+     */
+    public function blobExists(string $containerName, string $blobName, array $options = []): bool
+    {
+        $uri = $this->uriForBlob($containerName, $blobName);
+
+        try {
+            $response = $this->head($uri, $options);
+        } catch (RequestException $e) {
+            $response = $e->getResponse();
+
+            if (null !== $response && 404 === $response->getStatusCode()) {
+                return false;
+            }
+
+            throw $e;
+        }
+
+        return 200 === $response->getStatusCode();
+    }
+
+    /**
+     * @param resource|StreamInterface|string         $content
+     * @param array<string, string>                   $metadata
+     * @param array<string, string>                   $tags
+     * @param array<string, callable|scalar|scalar[]> $options
+     *
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/put-blob
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/specifying-conditional-headers-for-blob-service-operations
+     */
+    public function putBlob(
+        string $containerName,
+        string $blobName,
+        $content,
+        string $contentType = 'application/octet-stream',
+        array $metadata = [],
+        array $tags = [],
+        array $options = []
+    ): PromiseInterface {
+        $uri = $this->uriForBlob($containerName, $blobName);
+
+        if (false === $content instanceof StreamInterface) {
+            $content = Utils::streamFor($content);
+        }
+
+        $options['body'] = $content;
+        $options['headers']['content-type'] = $contentType;
+        $options['headers']['content-length'] = $content->getSize();
+        $options['headers']['x-ms-blob-type'] = 'BlockBlob ';
+
+        foreach ($metadata as $name => $value) {
+            $options['headers']['x-ms-meta-'.$name] = $value;
+        }
+
+        if (0 < count($tags)) {
+            $options['headers']['x-ms-tags'] = Query::build($tags);
+        }
+
+        return $this->putAsync($uri, $options);
+    }
+
+    /**
+     * @param array<string, callable|scalar|scalar[]> $options
+     *
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/delete-blob
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/specifying-conditional-headers-for-blob-service-operations
+     */
+    public function deleteBlob(string $containerName, string $blobName, ?string $versionId = null, ?string $snapshot = null, bool $includeSnapshots = true, array $options = []): PromiseInterface
+    {
+        $params = [];
+
+        if (null !== $versionId) {
+            $params['versionid'] = $versionId;
+        }
+
+        if (null !== $snapshot) {
+            $params['snapshot'] = $snapshot;
+        }
+        $uri = $this->uriForBlob($containerName, $blobName, $params);
+
+        if (null === $snapshot) {
+            $options['headers']['x-ms-delete-snapshots'] = $includeSnapshots ? 'include' : 'only';
+        }
+
+        return $this->deleteAsync($uri, $options);
+    }
+
+    /**
+     * @param string[]                                $include
+     * @param array<string, callable|scalar|scalar[]> $options
+     *
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/list-blobs
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/specifying-conditional-headers-for-blob-service-operations
+     */
+    public function listBlobs(string $containerName, string $prefix = '', string $delimiter = '', ?string $marker = null, int $maxResults = 5000, array $include = [], array $options = []): PromiseInterface
+    {
+        $params = [
+            'restype' => 'container',
+            'comp' => 'list',
+            'maxresults' => $maxResults,
+        ];
+
+        if ('' !== $prefix) {
+            $params['prefix'] = $prefix;
+        }
+
+        if ('' !== $delimiter) {
+            $params['delimiter'] = $delimiter;
+        }
+
+        if (null !== $marker) {
+            $params['marker'] = $marker;
+        }
+
+        if (0 < count($include)) {
+            $params['include'] = implode(',', $include);
+        }
+
+        $uri = $this->uriForContainer($containerName, $params);
+
+        return $this->getAsync($uri, $options);
+    }
+
+    /**
+     * @param array<string, callable|scalar|scalar[]> $options
+     *
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/get-blob
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/specifying-conditional-headers-for-blob-service-operations
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/specifying-the-range-header-for-blob-service-operations
+     */
+    public function getBlob(string $containerName, string $blobName, ?string $snapshot = null, ?string $versionId = null, array $options = []): PromiseInterface
+    {
+        $params = [];
+
+        if (null !== $snapshot) {
+            $params['snapshot'] = $snapshot;
+        }
+
+        if (null !== $versionId) {
+            $params['versionid'] = $versionId;
+        }
+
+        $uri = $this->uriForBlob($containerName, $blobName, $params);
+
+        return $this->getAsync($uri, $options);
+    }
+
+    /**
+     * @param array<string, callable|scalar|scalar[]> $options
+     *
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/get-blob-properties
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/specifying-conditional-headers-for-blob-service-operations
+     */
+    public function getBlobProperties(string $containerName, string $blobName, ?string $snapshot = null, ?string $versionId = null, array $options = []): PromiseInterface
+    {
+        $params = [];
+
+        if (null !== $snapshot) {
+            $params['snapshot'] = $snapshot;
+        }
+
+        if (null !== $versionId) {
+            $params['versionid'] = $versionId;
+        }
+
+        $uri = $this->uriForBlob($containerName, $blobName, $params);
+
+        return $this->headAsync($uri, $options);
+    }
+
+    /**
+     * @param array<string, callable|scalar|scalar[]> $options
+     *
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/set-blob-properties
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/specifying-conditional-headers-for-blob-service-operations
+     */
+    public function setBlobProperties(string $containerName, string $blobName, array $options = []): PromiseInterface
+    {
+        $params = ['comp' => 'properties'];
+        $uri = $this->uriForBlob($containerName, $blobName, $params);
+
+        return $this->putAsync($uri, $options);
+    }
+
+    /**
+     * @param array<string, callable|scalar|scalar[]> $options
+     *
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/get-blob-metadata
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/specifying-conditional-headers-for-blob-service-operations
+     */
+    public function getBlobMetadata(string $containerName, string $blobName, ?string $snapshot = null, ?string $versionId = null, array $options = []): PromiseInterface
+    {
+        $params = ['comp' => 'metadata'];
+
+        if (null !== $snapshot) {
+            $params['snapshot'] = $snapshot;
+        }
+
+        if (null !== $versionId) {
+            $params['versionid'] = $versionId;
+        }
+
+        $uri = $this->uriForBlob($containerName, $blobName, $params);
+
+        return $this->headAsync($uri, $options);
+    }
+
+    /**
+     * @param array<string, string>                   $metadata
+     * @param array<string, callable|scalar|scalar[]> $options
+     *
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/set-blob-metadata
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/specifying-conditional-headers-for-blob-service-operations
+     */
+    public function setBlobMetadata(string $containerName, string $blobName, array $metadata, array $options = []): PromiseInterface
+    {
+        $params = ['comp' => 'metadata'];
+        $uri = $this->uriForBlob($containerName, $blobName, $params);
+
+        foreach ($metadata as $key => $value) {
+            $options['headers']['x-ms-meta-'.$key] = $value;
+        }
+
+        return $this->putAsync($uri, $options);
+    }
+
+    /**
+     * @param array<string, callable|scalar|scalar[]> $options
+     *
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/get-blob-tags
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/specifying-conditional-headers-for-blob-service-operations
+     */
+    public function getBlobTags(string $containerName, string $blobName, ?string $snapshot = null, ?string $versionId = null, array $options = []): PromiseInterface
+    {
+        $params = ['comp' => 'tags'];
+
+        if (null !== $snapshot) {
+            $params['snapshot'] = $snapshot;
+        }
+
+        if (null !== $versionId) {
+            $params['versionid'] = $versionId;
+        }
+
+        $uri = $this->uriForBlob($containerName, $blobName, $params);
+
+        return $this->getAsync($uri, $options);
+    }
+
+    /**
+     * @param array<string, string>                   $tags
+     * @param array<string, callable|scalar|scalar[]> $options
+     *
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/set-blob-tags
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/specifying-conditional-headers-for-blob-service-operations
+     */
+    public function setBlobTags(string $containerName, string $blobName, array $tags, ?string $snapshot = null, ?string $versionId = null, array $options = []): PromiseInterface
+    {
+        $params = ['comp' => 'tags'];
+
+        if (null !== $snapshot) {
+            $params['snapshot'] = $snapshot;
+        }
+
+        if (null !== $versionId) {
+            $params['versionid'] = $versionId;
+        }
+
+        $uri = $this->uriForBlob($containerName, $blobName, $params);
+
+        $xml = new \SimpleXMLElement('<Tags></Tags>');
+        $set = $xml->addChild('TagSet');
+
+        foreach ($tags as $key => $value) {
+            $tag = $set->addChild('Tag');
+            $tag->addChild('Key', $key);
+            $tag->addChild('Value', $value);
+        }
+
+        $body = $xml->asXML();
+
+        $options['headers']['content-type'] = 'application/xml; charset=UTF-8';
+        $options['headers']['content-length'] = strlen($body);
+        $options['headers']['content-md5'] = md5($body);
+        $options['body'] = $body;
+
+        return $this->putAsync($uri, $options);
+    }
+
+    /**
+     * @param array<string, callable|scalar|scalar[]> $options
+     *
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/find-blobs-by-tags
+     * @see https://learn.microsoft.com/en-us/rest/api/storageservices/specifying-conditional-headers-for-blob-service-operations
+     */
+    public function findBlobsByTags(string $expression, ?string $marker = null, int $maxResults = 5000, array $options = []): PromiseInterface
+    {
+        $query = [
+            'comp' => 'blobs',
+            'expression' => $expression,
+            'maxresults' => $maxResults,
+        ];
+
+        if (null !== $marker) {
+            $query['marker'] = $marker;
+        }
+
         $uri = $this->uri->withQuery(Query::build($query));
-        $request = new Request('GET', $uri);
 
-        $response = $this->client->send($request);
-        $xml = new \SimpleXMLElement($response->getBody()->getContents());
-
-        return Tags::fromXml($xml);
+        return $this->getAsync($uri, $options);
     }
 }

@@ -1,17 +1,14 @@
 <?php
 
 declare (strict_types=1);
-namespace RectorPrefix202505;
+namespace RectorPrefix202506;
 
 use Rector\Config\RectorConfig;
 use Rector\Doctrine\Bundle230\Rector\Class_\AddAnnotationToRepositoryRector;
-use Rector\Doctrine\CodeQuality\Rector\Class_\ExplicitRelationCollectionRector;
 use Rector\Doctrine\CodeQuality\Rector\Class_\MoveCurrentDateTimeDefaultInEntityToConstructorRector;
 use Rector\Doctrine\CodeQuality\Rector\Class_\RemoveEmptyTableAttributeRector;
 use Rector\Doctrine\CodeQuality\Rector\Property\CorrectDefaultTypesOnEntityPropertyRector;
-use Rector\Doctrine\CodeQuality\Rector\Property\ImproveDoctrineCollectionDocTypeInEntityRector;
 use Rector\Doctrine\CodeQuality\Rector\Property\TypedPropertyFromColumnTypeRector;
-use Rector\Doctrine\CodeQuality\Rector\Property\TypedPropertyFromToManyRelationTypeRector;
 use Rector\Doctrine\CodeQuality\Rector\Property\TypedPropertyFromToOneRelationTypeRector;
 use Rector\Transform\Rector\Attribute\AttributeKeyToClassConstFetchRector;
 use Rector\Transform\ValueObject\AttributeKeyToClassConstFetch;
@@ -19,13 +16,10 @@ return static function (RectorConfig $rectorConfig) : void {
     $rectorConfig->rules([
         MoveCurrentDateTimeDefaultInEntityToConstructorRector::class,
         CorrectDefaultTypesOnEntityPropertyRector::class,
-        ExplicitRelationCollectionRector::class,
-        ImproveDoctrineCollectionDocTypeInEntityRector::class,
         RemoveEmptyTableAttributeRector::class,
         // typed properties in entities from annotations/attributes
         TypedPropertyFromColumnTypeRector::class,
         TypedPropertyFromToOneRelationTypeRector::class,
-        TypedPropertyFromToManyRelationTypeRector::class,
         // annotations generics
         AddAnnotationToRepositoryRector::class,
     ]);

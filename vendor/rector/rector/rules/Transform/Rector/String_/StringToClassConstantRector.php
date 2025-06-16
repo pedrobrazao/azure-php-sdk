@@ -11,7 +11,7 @@ use Rector\Rector\AbstractRector;
 use Rector\Transform\ValueObject\StringToClassConstant;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\ConfiguredCodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-use RectorPrefix202505\Webmozart\Assert\Assert;
+use RectorPrefix202506\Webmozart\Assert\Assert;
 /**
  * @see \Rector\Tests\Transform\Rector\String_\StringToClassConstantRector\StringToClassConstantRectorTest
  */
@@ -31,7 +31,7 @@ final class StringToClassConstantRector extends AbstractRector implements Config
     }
     public function getRuleDefinition() : RuleDefinition
     {
-        return new RuleDefinition('Changes strings to specific constants', [new ConfiguredCodeSample(<<<'CODE_SAMPLE'
+        return new RuleDefinition('Change strings to specific constants', [new ConfiguredCodeSample(<<<'CODE_SAMPLE'
 final class SomeSubscriber
 {
     public static function getSubscribedEvents()

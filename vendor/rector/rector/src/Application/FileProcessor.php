@@ -3,7 +3,7 @@
 declare (strict_types=1);
 namespace Rector\Application;
 
-use RectorPrefix202505\Nette\Utils\FileSystem;
+use RectorPrefix202506\Nette\Utils\FileSystem;
 use PHPStan\AnalysedCodeException;
 use PHPStan\Parser\ParserErrorsException;
 use Rector\Caching\Detector\ChangedFilesDetector;
@@ -22,7 +22,7 @@ use Rector\ValueObject\Application\File;
 use Rector\ValueObject\Configuration;
 use Rector\ValueObject\Error\SystemError;
 use Rector\ValueObject\FileProcessResult;
-use RectorPrefix202505\Symfony\Component\Console\Style\SymfonyStyle;
+use RectorPrefix202506\Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
 final class FileProcessor
 {
@@ -108,7 +108,7 @@ final class FileProcessor
         } while (\true);
         // 5. add as cacheable if not changed at all
         if (!$fileHasChanged) {
-            $this->changedFilesDetector->addCachableFile($filePath);
+            $this->changedFilesDetector->addCacheableFile($filePath);
         } else {
             // when changed, set final status changed to true
             // to ensure it make sense to verify in next process when needed

@@ -3,12 +3,13 @@
 declare (strict_types=1);
 namespace Rector\Console\Command;
 
-use RectorPrefix202505\Clue\React\NDJson\Decoder;
-use RectorPrefix202505\Clue\React\NDJson\Encoder;
-use RectorPrefix202505\React\EventLoop\StreamSelectLoop;
-use RectorPrefix202505\React\Socket\ConnectionInterface;
-use RectorPrefix202505\React\Socket\TcpConnector;
+use RectorPrefix202506\Clue\React\NDJson\Decoder;
+use RectorPrefix202506\Clue\React\NDJson\Encoder;
+use RectorPrefix202506\React\EventLoop\StreamSelectLoop;
+use RectorPrefix202506\React\Socket\ConnectionInterface;
+use RectorPrefix202506\React\Socket\TcpConnector;
 use Rector\Application\ApplicationFileProcessor;
+use Rector\Autoloading\AdditionalAutoloader;
 use Rector\Configuration\ConfigurationFactory;
 use Rector\Configuration\ConfigurationRuleFilter;
 use Rector\Console\ProcessConfigureDecorator;
@@ -17,14 +18,14 @@ use Rector\StaticReflection\DynamicSourceLocatorDecorator;
 use Rector\Util\MemoryLimiter;
 use Rector\ValueObject\Configuration;
 use Rector\ValueObject\Error\SystemError;
-use RectorPrefix202505\Symfony\Component\Console\Command\Command;
-use RectorPrefix202505\Symfony\Component\Console\Input\InputInterface;
-use RectorPrefix202505\Symfony\Component\Console\Output\OutputInterface;
-use RectorPrefix202505\Symplify\EasyParallel\Enum\Action;
-use RectorPrefix202505\Symplify\EasyParallel\Enum\ReactCommand;
-use RectorPrefix202505\Symplify\EasyParallel\Enum\ReactEvent;
+use RectorPrefix202506\Symfony\Component\Console\Command\Command;
+use RectorPrefix202506\Symfony\Component\Console\Input\InputInterface;
+use RectorPrefix202506\Symfony\Component\Console\Output\OutputInterface;
+use RectorPrefix202506\Symplify\EasyParallel\Enum\Action;
+use RectorPrefix202506\Symplify\EasyParallel\Enum\ReactCommand;
+use RectorPrefix202506\Symplify\EasyParallel\Enum\ReactEvent;
 use Throwable;
-use RectorPrefix202505\Webmozart\Assert\Assert;
+use RectorPrefix202506\Webmozart\Assert\Assert;
 /**
  * Inspired at: https://github.com/phpstan/phpstan-src/commit/9124c66dcc55a222e21b1717ba5f60771f7dda92
  * https://github.com/phpstan/phpstan-src/blob/c471c7b050e0929daf432288770de673b394a983/src/Command/WorkerCommand.php
@@ -34,6 +35,10 @@ use RectorPrefix202505\Webmozart\Assert\Assert;
  */
 final class WorkerCommand extends Command
 {
+    /**
+     * @readonly
+     */
+    private AdditionalAutoloader $additionalAutoloader;
     /**
      * @readonly
      */
@@ -58,8 +63,9 @@ final class WorkerCommand extends Command
      * @var string
      */
     private const RESULT = 'result';
-    public function __construct(DynamicSourceLocatorDecorator $dynamicSourceLocatorDecorator, ApplicationFileProcessor $applicationFileProcessor, MemoryLimiter $memoryLimiter, ConfigurationFactory $configurationFactory, ConfigurationRuleFilter $configurationRuleFilter)
+    public function __construct(AdditionalAutoloader $additionalAutoloader, DynamicSourceLocatorDecorator $dynamicSourceLocatorDecorator, ApplicationFileProcessor $applicationFileProcessor, MemoryLimiter $memoryLimiter, ConfigurationFactory $configurationFactory, ConfigurationRuleFilter $configurationRuleFilter)
     {
+        $this->additionalAutoloader = $additionalAutoloader;
         $this->dynamicSourceLocatorDecorator = $dynamicSourceLocatorDecorator;
         $this->applicationFileProcessor = $applicationFileProcessor;
         $this->memoryLimiter = $memoryLimiter;
@@ -94,6 +100,7 @@ final class WorkerCommand extends Command
     }
     private function runWorker(Encoder $encoder, Decoder $decoder, Configuration $configuration, OutputInterface $output) : void
     {
+        $this->additionalAutoloader->autoloadPaths();
         $this->dynamicSourceLocatorDecorator->addPaths($configuration->getPaths());
         if ($configuration->isDebug()) {
             $preFileCallback = static function (string $filePath) use($output) : void {

@@ -30,7 +30,7 @@ use Rector\ValueObject\PhpVersion;
 use Rector\VersionBonding\Contract\MinPhpVersionInterface;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\ConfiguredCodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-use RectorPrefix202505\Webmozart\Assert\Assert;
+use RectorPrefix202506\Webmozart\Assert\Assert;
 /**
  * @see \Rector\Tests\Php80\Rector\Property\NestedAnnotationToAttributeRector\NestedAnnotationToAttributeRectorTest
  */
@@ -75,7 +75,7 @@ final class NestedAnnotationToAttributeRector extends AbstractRector implements 
     }
     public function getRuleDefinition() : RuleDefinition
     {
-        return new RuleDefinition('Changed nested annotations to attributes', [new ConfiguredCodeSample(<<<'CODE_SAMPLE'
+        return new RuleDefinition('Change nested annotations to attributes', [new ConfiguredCodeSample(<<<'CODE_SAMPLE'
 use Doctrine\ORM\Mapping as ORM;
 
 class SomeEntity

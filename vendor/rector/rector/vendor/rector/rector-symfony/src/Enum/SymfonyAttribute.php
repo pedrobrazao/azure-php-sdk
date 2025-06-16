@@ -16,11 +16,11 @@ final class SymfonyAttribute
     /**
      * @var string
      */
-    public const COMMAND_OPTION = 'Symfony\\Component\\Console\\Attribute\\Command\\Option';
+    public const COMMAND_OPTION = 'Symfony\\Component\\Console\\Attribute\\Option';
     /**
      * @var string
      */
-    public const COMMAND_ARGUMENT = 'Symfony\\Component\\Console\\Attribute\\Command\\Argument';
+    public const COMMAND_ARGUMENT = 'Symfony\\Component\\Console\\Attribute\\Argument';
     /**
      * @var string
      */

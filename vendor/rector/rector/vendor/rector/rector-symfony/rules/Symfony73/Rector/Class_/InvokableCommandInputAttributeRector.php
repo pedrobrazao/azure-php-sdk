@@ -5,6 +5,8 @@ namespace Rector\Symfony\Symfony73\Rector\Class_;
 
 use PhpParser\Node;
 use PhpParser\Node\Attribute;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Identifier;
@@ -15,6 +17,8 @@ use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Expression;
 use Rector\Doctrine\NodeAnalyzer\AttributeFinder;
 use Rector\Exception\ShouldNotHappenException;
+use Rector\PhpParser\Node\Value\ValueResolver;
+use Rector\Privatization\NodeManipulator\VisibilityManipulator;
 use Rector\Rector\AbstractRector;
 use Rector\Symfony\Enum\CommandMethodName;
 use Rector\Symfony\Enum\SymfonyAttribute;
@@ -27,7 +31,7 @@ use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
  * @see https://github.com/symfony/symfony-docs/issues/20553
  * @see https://github.com/symfony/symfony/pull/59340
  *
- * @see \Rector\Symfony\Tests\Symfony73\Rector\Class_\InvokableCommandInputAttributeRector\InvokableCommandRectorTest
+ * @see \Rector\Symfony\Tests\Symfony73\Rector\Class_\InvokableCommandInputAttributeRector\InvokableCommandInputAttributeRectorTest
  */
 final class InvokableCommandInputAttributeRector extends AbstractRector
 {
@@ -43,12 +47,22 @@ final class InvokableCommandInputAttributeRector extends AbstractRector
      * @readonly
      */
     private CommandInvokeParamsFactory $commandInvokeParamsFactory;
+    /**
+     * @readonly
+     */
+    private ValueResolver $valueResolver;
+    /**
+     * @readonly
+     */
+    private VisibilityManipulator $visibilityManipulator;
     private const MIGRATED_CONFIGURE_CALLS = ['addArgument', 'addOption'];
-    public function __construct(AttributeFinder $attributeFinder, CommandArgumentsAndOptionsResolver $commandArgumentsAndOptionsResolver, CommandInvokeParamsFactory $commandInvokeParamsFactory)
+    public function __construct(AttributeFinder $attributeFinder, CommandArgumentsAndOptionsResolver $commandArgumentsAndOptionsResolver, CommandInvokeParamsFactory $commandInvokeParamsFactory, ValueResolver $valueResolver, VisibilityManipulator $visibilityManipulator)
     {
         $this->attributeFinder = $attributeFinder;
         $this->commandArgumentsAndOptionsResolver = $commandArgumentsAndOptionsResolver;
         $this->commandInvokeParamsFactory = $commandInvokeParamsFactory;
+        $this->valueResolver = $valueResolver;
+        $this->visibilityManipulator = $visibilityManipulator;
     }
     public function getRuleDefinition() : RuleDefinition
     {
@@ -82,13 +96,13 @@ final class SomeCommand extends Command
 CODE_SAMPLE
 , <<<'CODE_SAMPLE'
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Command\Argument;
-use Symfony\Component\Console\Command\Option;
+use Symfony\Component\Console\Argument;
+use Symfony\Component\Console\Option;
 
 final class SomeCommand
 {
     public function __invoke(
-        #[Argument]
+        #[Argument(name: 'argument', description: 'Argument description')]
         string $argument,
         #[Option]
         bool $option = false,
@@ -128,30 +142,44 @@ CODE_SAMPLE
         if (!$this->attributeFinder->findAttributeByClass($node, SymfonyAttribute::AS_COMMAND) instanceof Attribute) {
             return null;
         }
-        // 1. fetch configure method to get arguments and options metadata
-        $configureClassMethod = $node->getMethod(CommandMethodName::CONFIGURE);
-        if (!$configureClassMethod instanceof ClassMethod) {
-            return null;
-        }
-        // 2. rename execute to __invoke
+        // 1. rename execute to __invoke
         $executeClassMethod = $node->getMethod(CommandMethodName::EXECUTE);
         if (!$executeClassMethod instanceof ClassMethod) {
             return null;
         }
         $executeClassMethod->name = new Identifier('__invoke');
-        // 3. create arguments and options parameters
-        // @todo
-        $commandArguments = $this->commandArgumentsAndOptionsResolver->collectCommandArguments($configureClassMethod);
-        $commandOptions = $this->commandArgumentsAndOptionsResolver->collectCommandOptions($configureClassMethod);
-        // 4. remove configure() method
-        $this->removeConfigureClassMethod($node);
-        // 5. decorate __invoke method with attributes
-        $invokeParams = $this->commandInvokeParamsFactory->createParams($commandArguments, $commandOptions);
-        $executeClassMethod->params = $invokeParams;
+        $this->visibilityManipulator->makePublic($executeClassMethod);
+        // 2. fetch configure method to get arguments and options metadata
+        $configureClassMethod = $node->getMethod(CommandMethodName::CONFIGURE);
+        if ($configureClassMethod instanceof ClassMethod) {
+            // 3. create arguments and options parameters
+            // @todo
+            $commandArguments = $this->commandArgumentsAndOptionsResolver->collectCommandArguments($configureClassMethod);
+            $commandOptions = $this->commandArgumentsAndOptionsResolver->collectCommandOptions($configureClassMethod);
+            // 4. remove configure() method
+            $this->removeConfigureClassMethod($node);
+            // 5. decorate __invoke method with attributes
+            $invokeParams = $this->commandInvokeParamsFactory->createParams($commandArguments, $commandOptions);
+        } else {
+            $invokeParams = [];
+        }
+        $executeClassMethod->params = \array_merge($invokeParams, [$executeClassMethod->params[1]]);
         // 6. remove parent class
         $node->extends = null;
-        // 7. replace input->getArgument() and input->getOption() calls with direct variable access
-        $this->replaceInputArgumentOptionFetchWithVariables($executeClassMethod);
+        foreach ($executeClassMethod->attrGroups as $attrGroupKey => $attrGroup) {
+            foreach ($attrGroup->attrs as $attributeKey => $attr) {
+                if ($this->isName($attr->name, 'Override')) {
+                    unset($attrGroup->attrs[$attributeKey]);
+                }
+            }
+            if ($attrGroup->attrs === []) {
+                unset($executeClassMethod->attrGroups[$attrGroupKey]);
+            }
+        }
+        if ($configureClassMethod instanceof ClassMethod) {
+            // 7. replace input->getArgument() and input->getOption() calls with direct variable access
+            $this->replaceInputArgumentOptionFetchWithVariables($executeClassMethod);
+        }
         return $node;
     }
     /**
@@ -209,11 +237,16 @@ CODE_SAMPLE
                 return null;
             }
             $firstArgValue = $node->getArgs()[0]->value;
+            if ($firstArgValue instanceof ClassConstFetch || $firstArgValue instanceof ConstFetch) {
+                $variableName = $this->valueResolver->getValue($firstArgValue);
+                return new Variable(\str_replace('-', '_', $variableName));
+            }
             if (!$firstArgValue instanceof String_) {
                 // unable to resolve argument/option name
                 throw new ShouldNotHappenException();
             }
-            return new Variable($firstArgValue->value);
+            $variableName = $firstArgValue->value;
+            return new Variable(\str_replace('-', '_', $variableName));
         });
     }
     private function isFluentArgumentOptionChain(MethodCall $methodCall) : bool

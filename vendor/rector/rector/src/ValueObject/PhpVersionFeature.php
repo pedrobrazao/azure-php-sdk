@@ -242,6 +242,11 @@ final class PhpVersionFeature
     public const ARRAY_KEY_FIRST_LAST = \Rector\ValueObject\PhpVersion::PHP_73;
     /**
      * @var int
+     * @see https://php.watch/versions/8.5/array_first-array_last
+     */
+    public const ARRAY_FIRST_LAST = \Rector\ValueObject\PhpVersion::PHP_85;
+    /**
+     * @var int
      */
     public const JSON_EXCEPTION = \Rector\ValueObject\PhpVersion::PHP_73;
     /**
@@ -505,6 +510,11 @@ final class PhpVersionFeature
      */
     public const READONLY_CLASS = \Rector\ValueObject\PhpVersion::PHP_82;
     /**
+     * @see https://www.php.net/manual/en/migration83.new-features.php#migration83.new-features.core.readonly-modifier-improvements
+     * @var int
+     */
+    public const READONLY_ANONYMOUS_CLASS = \Rector\ValueObject\PhpVersion::PHP_83;
+    /**
      * @see https://wiki.php.net/rfc/mixed_type_v2
      * @var int
      */
@@ -551,6 +561,11 @@ final class PhpVersionFeature
      */
     public const TYPED_CLASS_CONSTANTS = \Rector\ValueObject\PhpVersion::PHP_83;
     /**
+     * @see https://wiki.php.net/rfc/dynamic_class_constant_fetch
+     * @var int
+     */
+    public const DYNAMIC_CLASS_CONST_FETCH = \Rector\ValueObject\PhpVersion::PHP_83;
+    /**
      * @see https://wiki.php.net/rfc/deprecate-implicitly-nullable-types
      * @var int
      */
@@ -581,4 +596,9 @@ final class PhpVersionFeature
      * @var int
      */
     public const DEPRECATE_GET_CLASS_WITHOUT_ARGS = \Rector\ValueObject\PhpVersion::PHP_83;
+    /**
+     * @see https://wiki.php.net/rfc/deprecated_attribute
+     * @var int
+     */
+    public const DEPRECATED_ATTRIBUTE = \Rector\ValueObject\PhpVersion::PHP_84;
 }

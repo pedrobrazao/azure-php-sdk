@@ -10,7 +10,7 @@ use Rector\Rector\AbstractRector;
 use Rector\Transform\ValueObject\FuncCallToStaticCall;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\ConfiguredCodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-use RectorPrefix202505\Webmozart\Assert\Assert;
+use RectorPrefix202506\Webmozart\Assert\Assert;
 /**
  * @see \Rector\Tests\Transform\Rector\FuncCall\FuncCallToStaticCallRector\FuncCallToStaticCallRectorTest
  */
@@ -22,7 +22,7 @@ final class FuncCallToStaticCallRector extends AbstractRector implements Configu
     private array $funcCallsToStaticCalls = [];
     public function getRuleDefinition() : RuleDefinition
     {
-        return new RuleDefinition('Turns defined function call to static method call.', [new ConfiguredCodeSample('view("...", []);', 'SomeClass::render("...", []);', [new FuncCallToStaticCall('view', 'SomeStaticClass', 'render')])]);
+        return new RuleDefinition('Turn defined function call to static method call', [new ConfiguredCodeSample('view("...", []);', 'SomeClass::render("...", []);', [new FuncCallToStaticCall('view', 'SomeStaticClass', 'render')])]);
     }
     /**
      * @return array<class-string<Node>>

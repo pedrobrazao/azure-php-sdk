@@ -6,21 +6,25 @@ namespace Rector\TypeDeclaration\Rector\ClassMethod;
 use PhpParser\Node;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
+use PHPStan\Reflection\ClassReflection;
 use PHPStan\Type\ArrayType;
 use PHPStan\Type\MixedType;
 use PHPStan\Type\ObjectType;
+use PHPStan\Type\StaticType;
 use PHPStan\Type\Type;
 use Rector\Contract\Rector\ConfigurableRectorInterface;
 use Rector\Php\PhpVersionProvider;
 use Rector\PHPStanStaticTypeMapper\Enum\TypeKind;
 use Rector\Rector\AbstractRector;
+use Rector\Reflection\ReflectionResolver;
 use Rector\StaticTypeMapper\StaticTypeMapper;
+use Rector\StaticTypeMapper\ValueObject\Type\SimpleStaticType;
 use Rector\TypeDeclaration\ValueObject\AddReturnTypeDeclaration;
 use Rector\ValueObject\PhpVersionFeature;
 use Rector\VendorLocker\ParentClassMethodTypeOverrideGuard;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\ConfiguredCodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-use RectorPrefix202505\Webmozart\Assert\Assert;
+use RectorPrefix202506\Webmozart\Assert\Assert;
 /**
  * @see \Rector\Tests\TypeDeclaration\Rector\ClassMethod\AddReturnTypeDeclarationRector\AddReturnTypeDeclarationRectorTest
  */
@@ -39,19 +43,24 @@ final class AddReturnTypeDeclarationRector extends AbstractRector implements Con
      */
     private StaticTypeMapper $staticTypeMapper;
     /**
+     * @readonly
+     */
+    private ReflectionResolver $reflectionResolver;
+    /**
      * @var AddReturnTypeDeclaration[]
      */
     private array $methodReturnTypes = [];
     private bool $hasChanged = \false;
-    public function __construct(PhpVersionProvider $phpVersionProvider, ParentClassMethodTypeOverrideGuard $parentClassMethodTypeOverrideGuard, StaticTypeMapper $staticTypeMapper)
+    public function __construct(PhpVersionProvider $phpVersionProvider, ParentClassMethodTypeOverrideGuard $parentClassMethodTypeOverrideGuard, StaticTypeMapper $staticTypeMapper, ReflectionResolver $reflectionResolver)
     {
         $this->phpVersionProvider = $phpVersionProvider;
         $this->parentClassMethodTypeOverrideGuard = $parentClassMethodTypeOverrideGuard;
         $this->staticTypeMapper = $staticTypeMapper;
+        $this->reflectionResolver = $reflectionResolver;
     }
     public function getRuleDefinition() : RuleDefinition
     {
-        return new RuleDefinition('Changes defined return typehint of method and class.', [new ConfiguredCodeSample(<<<'CODE_SAMPLE'
+        return new RuleDefinition('Change defined return typehint of method and class', [new ConfiguredCodeSample(<<<'CODE_SAMPLE'
 class SomeClass
 {
     public function getData()
@@ -120,6 +129,13 @@ CODE_SAMPLE
         if ($newType instanceof MixedType && !$this->phpVersionProvider->isAtLeastPhpVersion(PhpVersionFeature::MIXED_TYPE)) {
             $classMethod->returnType = null;
             return;
+        }
+        $classReflection = $this->reflectionResolver->resolveClassReflection($classMethod);
+        if ($classMethod->returnType instanceof Node && $newType instanceof SimpleStaticType) {
+            if (!$classReflection instanceof ClassReflection) {
+                return;
+            }
+            $newType = new StaticType($classReflection);
         }
         // already set and sub type or equal → no change
         if ($this->parentClassMethodTypeOverrideGuard->shouldSkipReturnTypeChange($classMethod, $newType)) {

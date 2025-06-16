@@ -10,7 +10,7 @@ use PhpParser\Node\Stmt\ClassConst;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Property;
 use Rector\ValueObject\Visibility;
-use RectorPrefix202505\Webmozart\Assert\Assert;
+use RectorPrefix202506\Webmozart\Assert\Assert;
 /**
  * @see \Rector\Tests\Privatization\NodeManipulator\VisibilityManipulatorTest
  */
@@ -136,10 +136,13 @@ final class VisibilityManipulator
         if ($node instanceof Param && $isConstructorPromotionBefore && !$isConstructorPromotionAfter) {
             $this->makePublic($node);
         }
+        if ($node instanceof Property) {
+            $this->publicize($node);
+        }
     }
     /**
-     * @param \PhpParser\Node\Stmt\ClassConst|\PhpParser\Node\Stmt\ClassMethod $node
-     * @return \PhpParser\Node\Stmt\ClassConst|\PhpParser\Node\Stmt\ClassMethod|null
+     * @param \PhpParser\Node\Stmt\ClassConst|\PhpParser\Node\Stmt\ClassMethod|\PhpParser\Node\Stmt\Property $node
+     * @return \PhpParser\Node\Stmt\ClassConst|\PhpParser\Node\Stmt\ClassMethod|\PhpParser\Node\Stmt\Property|null
      */
     public function publicize($node)
     {

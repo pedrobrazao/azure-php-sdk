@@ -10,7 +10,7 @@ use Rector\Contract\Rector\ConfigurableRectorInterface;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\ConfiguredCodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-use RectorPrefix202505\Webmozart\Assert\Assert;
+use RectorPrefix202506\Webmozart\Assert\Assert;
 /**
  * @see \Rector\Tests\Removing\Rector\Class_\RemoveInterfacesRector\RemoveInterfacesRectorTest
  */
@@ -22,7 +22,7 @@ final class RemoveInterfacesRector extends AbstractRector implements Configurabl
     private array $interfacesToRemove = [];
     public function getRuleDefinition() : RuleDefinition
     {
-        return new RuleDefinition('Removes interfaces usage from class.', [new ConfiguredCodeSample(<<<'CODE_SAMPLE'
+        return new RuleDefinition('Remove interfaces from class', [new ConfiguredCodeSample(<<<'CODE_SAMPLE'
 class SomeClass implements SomeInterface
 {
 }

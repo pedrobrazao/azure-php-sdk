@@ -3,9 +3,9 @@
 declare (strict_types=1);
 namespace Rector\DependencyInjection;
 
-use RectorPrefix202505\Doctrine\Inflector\Inflector;
-use RectorPrefix202505\Doctrine\Inflector\Rules\English\InflectorFactory;
-use RectorPrefix202505\Illuminate\Container\Container;
+use RectorPrefix202506\Doctrine\Inflector\Inflector;
+use RectorPrefix202506\Doctrine\Inflector\Rules\English\InflectorFactory;
+use RectorPrefix202506\Illuminate\Container\Container;
 use PhpParser\Lexer;
 use PHPStan\Analyser\NodeScopeResolver;
 use PHPStan\Analyser\ScopeFactory;
@@ -43,6 +43,7 @@ use Rector\CodingStyle\ClassNameImport\ClassNameImportSkipper;
 use Rector\CodingStyle\ClassNameImport\ClassNameImportSkipVoter\AliasClassNameImportSkipVoter;
 use Rector\CodingStyle\ClassNameImport\ClassNameImportSkipVoter\ClassLikeNameClassNameImportSkipVoter;
 use Rector\CodingStyle\ClassNameImport\ClassNameImportSkipVoter\FullyQualifiedNameClassNameImportSkipVoter;
+use Rector\CodingStyle\ClassNameImport\ClassNameImportSkipVoter\ReservedClassNameImportSkipVoter;
 use Rector\CodingStyle\ClassNameImport\ClassNameImportSkipVoter\UsesClassNameImportSkipVoter;
 use Rector\CodingStyle\Contract\ClassNameImport\ClassNameImportSkipVoterInterface;
 use Rector\Config\RectorConfig;
@@ -178,10 +179,10 @@ use Rector\StaticTypeMapper\PhpParser\NameNodeMapper;
 use Rector\StaticTypeMapper\PhpParser\NullableTypeNodeMapper;
 use Rector\StaticTypeMapper\PhpParser\StringNodeMapper;
 use Rector\StaticTypeMapper\PhpParser\UnionTypeNodeMapper;
-use RectorPrefix202505\Symfony\Component\Console\Application;
-use RectorPrefix202505\Symfony\Component\Console\Command\Command;
-use RectorPrefix202505\Symfony\Component\Console\Style\SymfonyStyle;
-use RectorPrefix202505\Webmozart\Assert\Assert;
+use RectorPrefix202506\Symfony\Component\Console\Application;
+use RectorPrefix202506\Symfony\Component\Console\Command\Command;
+use RectorPrefix202506\Symfony\Component\Console\Style\SymfonyStyle;
+use RectorPrefix202506\Webmozart\Assert\Assert;
 final class LazyContainerFactory
 {
     /**
@@ -207,7 +208,7 @@ final class LazyContainerFactory
     /**
      * @var array<class-string<ClassNameImportSkipVoterInterface>>
      */
-    private const CLASS_NAME_IMPORT_SKIPPER_CLASSES = [AliasClassNameImportSkipVoter::class, ClassLikeNameClassNameImportSkipVoter::class, FullyQualifiedNameClassNameImportSkipVoter::class, UsesClassNameImportSkipVoter::class];
+    private const CLASS_NAME_IMPORT_SKIPPER_CLASSES = [AliasClassNameImportSkipVoter::class, ClassLikeNameClassNameImportSkipVoter::class, FullyQualifiedNameClassNameImportSkipVoter::class, UsesClassNameImportSkipVoter::class, ReservedClassNameImportSkipVoter::class];
     /**
      * @var array<class-string<TypeMapperInterface>>
      */

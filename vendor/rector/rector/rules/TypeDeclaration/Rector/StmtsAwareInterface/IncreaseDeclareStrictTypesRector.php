@@ -18,7 +18,7 @@ use Rector\Rector\AbstractRector;
 use Rector\TypeDeclaration\NodeAnalyzer\DeclareStrictTypeFinder;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\ConfiguredCodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-use RectorPrefix202505\Webmozart\Assert\Assert;
+use RectorPrefix202506\Webmozart\Assert\Assert;
 /**
  * @see \Rector\Tests\TypeDeclaration\Rector\StmtsAwareInterface\IncreaseDeclareStrictTypesRector\IncreaseDeclareStrictTypesRectorTest
  */
@@ -70,7 +70,7 @@ CODE_SAMPLE
         if ($this->declareStrictTypeFinder->hasDeclareStrictTypes($stmt)) {
             return null;
         }
-        // keep change withing a limit
+        // keep change within a limit
         if ($this->changedItemCount >= $this->limit) {
             return null;
         }

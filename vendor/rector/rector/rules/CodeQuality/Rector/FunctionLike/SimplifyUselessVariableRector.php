@@ -7,6 +7,7 @@ use PhpParser\Comment\Doc;
 use PhpParser\Node;
 use PhpParser\Node\Expr\Assign;
 use PhpParser\Node\Expr\AssignOp;
+use PhpParser\Node\Expr\Ternary;
 use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Stmt;
 use PhpParser\Node\Stmt\Expression;
@@ -62,7 +63,7 @@ final class SimplifyUselessVariableRector extends AbstractRector implements Conf
     }
     public function getRuleDefinition() : RuleDefinition
     {
-        return new RuleDefinition('Removes useless variable assigns', [new ConfiguredCodeSample(
+        return new RuleDefinition('Remove useless variable assigns', [new ConfiguredCodeSample(
             <<<'CODE_SAMPLE'
 function () {
     $a = true;
@@ -169,6 +170,9 @@ CODE_SAMPLE
             return \true;
         }
         if ($this->onlyDirectAssign && $previousNode instanceof AssignOp) {
+            return \true;
+        }
+        if ($previousNode instanceof AssignOp && $previousNode->expr instanceof Ternary) {
             return \true;
         }
         $variable = $return->expr;

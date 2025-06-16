@@ -8,9 +8,9 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-namespace RectorPrefix202505\Symfony\Component\Yaml;
+namespace RectorPrefix202506\Symfony\Component\Yaml;
 
-use RectorPrefix202505\Symfony\Component\Yaml\Exception\ParseException;
+use RectorPrefix202506\Symfony\Component\Yaml\Exception\ParseException;
 /**
  * Yaml offers convenience methods to load and dump YAML.
  *
@@ -33,6 +33,9 @@ class Yaml
     public const DUMP_EMPTY_ARRAY_AS_SEQUENCE = 1024;
     public const DUMP_NULL_AS_TILDE = 2048;
     public const DUMP_NUMERIC_KEY_AS_STRING = 4096;
+    public const DUMP_NULL_AS_EMPTY = 8192;
+    public const DUMP_COMPACT_NESTED_MAPPING = 16384;
+    public const DUMP_FORCE_DOUBLE_QUOTES_ON_VALUES = 32768;
     /**
      * Parses a YAML file into a PHP value.
      *

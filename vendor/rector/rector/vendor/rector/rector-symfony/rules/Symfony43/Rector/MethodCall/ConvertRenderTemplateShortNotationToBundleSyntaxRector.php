@@ -3,7 +3,7 @@
 declare (strict_types=1);
 namespace Rector\Symfony\Symfony43\Rector\MethodCall;
 
-use RectorPrefix202505\Nette\Utils\Strings;
+use RectorPrefix202506\Nette\Utils\Strings;
 use PhpParser\Node;
 use PhpParser\Node\Arg;
 use PhpParser\Node\Expr\MethodCall;
@@ -71,7 +71,7 @@ CODE_SAMPLE
      */
     public function refactor(Node $node) : ?Node
     {
-        if (!$this->nodeNameResolver->isName($node->name, 'render') && !$this->nodeNameResolver->isName($node->name, 'renderView')) {
+        if (!$this->isName($node->name, 'render') && !$this->isName($node->name, 'renderView')) {
             return null;
         }
         $objectType = $this->nodeTypeResolver->getType($node->var);

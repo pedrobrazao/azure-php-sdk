@@ -3,7 +3,7 @@
 declare (strict_types=1);
 namespace Rector\Symfony\CodeQuality\Rector\ClassMethod;
 
-use RectorPrefix202505\Nette\Utils\Strings;
+use RectorPrefix202506\Nette\Utils\Strings;
 use PhpParser\Node;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Stmt\ClassMethod;
@@ -66,7 +66,7 @@ CODE_SAMPLE
     }
     private function removeSuffix(ClassMethod $classMethod, string $suffixToRemove) : ?ClassMethod
     {
-        $name = $this->nodeNameResolver->getName($classMethod);
+        $name = $this->getName($classMethod);
         $newName = Strings::replace($name, \sprintf('#%s$#', $suffixToRemove), '');
         if ($newName === $name) {
             return null;

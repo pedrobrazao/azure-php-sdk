@@ -3,7 +3,7 @@
 declare (strict_types=1);
 namespace Rector\NetteUtils\Rector\StaticCall;
 
-use RectorPrefix202505\Nette\Utils\Json;
+use RectorPrefix202506\Nette\Utils\Json;
 use PhpParser\Node;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Identifier;
@@ -17,7 +17,7 @@ final class UtilsJsonStaticCallNamedArgRector extends AbstractRector
 {
     public function getRuleDefinition() : RuleDefinition
     {
-        return new RuleDefinition('Change ' . Json::class . '::encode() and decode() to named args', [new CodeSample(<<<'CODE_SAMPLE'
+        return new RuleDefinition('Change `' . Json::class . '::encode()` and `decode()` to named args', [new CodeSample(<<<'CODE_SAMPLE'
 use Nette\Utils\Json;
 
 $encodedJson = Json::encode($data, true);

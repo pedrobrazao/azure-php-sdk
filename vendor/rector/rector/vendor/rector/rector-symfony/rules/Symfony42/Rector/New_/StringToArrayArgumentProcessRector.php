@@ -17,7 +17,7 @@ use PHPStan\Type\StringType;
 use Rector\PhpParser\NodeTransformer;
 use Rector\Rector\AbstractRector;
 use Rector\Util\Reflection\PrivatesAccessor;
-use RectorPrefix202505\Symfony\Component\Console\Input\StringInput;
+use RectorPrefix202506\Symfony\Component\Console\Input\StringInput;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
 /**
@@ -104,7 +104,7 @@ CODE_SAMPLE
     }
     private function shouldSkipProcessMethodCall(MethodCall $methodCall) : bool
     {
-        $methodName = (string) $this->nodeNameResolver->getName($methodCall->name);
+        $methodName = (string) $this->getName($methodCall->name);
         return \in_array($methodName, self::EXCLUDED_PROCESS_METHOD_CALLS, \true);
     }
     /**

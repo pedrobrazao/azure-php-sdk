@@ -4,10 +4,10 @@ declare (strict_types=1);
 namespace Rector\Console\Style;
 
 use Rector\Util\Reflection\PrivatesAccessor;
-use RectorPrefix202505\Symfony\Component\Console\Application;
-use RectorPrefix202505\Symfony\Component\Console\Input\ArgvInput;
-use RectorPrefix202505\Symfony\Component\Console\Output\ConsoleOutput;
-use RectorPrefix202505\Symfony\Component\Console\Output\OutputInterface;
+use RectorPrefix202506\Symfony\Component\Console\Application;
+use RectorPrefix202506\Symfony\Component\Console\Input\ArgvInput;
+use RectorPrefix202506\Symfony\Component\Console\Output\ConsoleOutput;
+use RectorPrefix202506\Symfony\Component\Console\Output\OutputInterface;
 final class SymfonyStyleFactory
 {
     /**
@@ -42,7 +42,7 @@ final class SymfonyStyleFactory
         return new \Rector\Console\Style\RectorStyle($argvInput, $consoleOutput);
     }
     /**
-     * Never ever used static methods if not neccesary, this is just handy for tests + src to prevent duplication.
+     * Never ever used static methods if not necessary, this is just handy for tests + src to prevent duplication.
      */
     private function isPHPUnitRun() : bool
     {
